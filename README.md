@@ -3,6 +3,7 @@
 Type-safe TypeScript gateway for web-based Gemini access with OpenAI-compatible APIs.
 
 Chinese documentation: [docs/README.zh-CN.md](docs/README.zh-CN.md)
+Full API documentation (Chinese): [docs/API.zh-CN.md](docs/API.zh-CN.md)
 Architecture guide: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## What This Project Provides
@@ -116,5 +117,4 @@ Key variables:
 - If initialization fails and diagnostics are needed, set:
   - `GEMINI_DEBUG_SAVE_INIT_HTML=true`
   - then inspect `debug-gemini-init.html`
-
 

@@ -1,6 +1,7 @@
 ﻿# Web Model API Gateway（中文说明）
 
 English README: [../README.md](../README.md)
+完整 API 文档: [./API.zh-CN.md](./API.zh-CN.md)
 
 这是一个基于 TypeScript 的网关项目，用于把网页侧 Gemini 能力封装为标准 API，并提供 OpenAI 兼容接口。
 
