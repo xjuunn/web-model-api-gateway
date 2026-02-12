@@ -1,8 +1,6 @@
-/**
- * @file server/runtime.ts
- * @description 运行时控制器：负责 Provider 引导、模式启动、切换、配置重载与关闭。
- */
-import { createServer, Server } from "node:http";
+﻿import { Server } from "node:http";
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 import { CONFIG_FILE_PATH, env, reloadEnvFromDisk } from "../config/env";
 import { logger } from "../core/logger";
 import { createServerApp } from "./app";
@@ -34,7 +32,7 @@ export interface RuntimeDependencies {
   context: ApiContext;
   initializeProviders: () => Promise<ProviderStatus[]>;
   getProviderStatus: (id: string) => ProviderStatus | null;
-  createApp: (context: ApiContext) => ReturnType<typeof createServerApp>;
+  createApp: (context: ApiContext) => Hono;
 }
 
 export function createDefaultRuntimeDependencies(): RuntimeDependencies {
@@ -101,34 +99,26 @@ export class RuntimeController {
     if (this.webServer) return;
 
     const app = this.deps.createApp(this.deps.context);
-    this.webServer = createServer(app);
-    await new Promise<void>((resolve, reject) => {
-      const server = this.webServer!;
+    this.webServer = serve(
+      {
+        fetch: app.fetch,
+        hostname: this.deps.config.host,
+        port: this.deps.config.port
+      },
+      () => {
+        logger.info(`Server running on http://${this.deps.config.host}:${this.deps.config.port}`);
+      }
+    ) as Server;
 
-      const onError = (error: NodeJS.ErrnoException) => {
-        server.off("listening", onListening);
-        if (error.code === "EADDRINUSE") {
-          reject(
-            new Error(
-              `Port ${this.deps.config.port} is already in use on ${this.deps.config.host}. Stop the existing process or change APP_PORT in ${CONFIG_FILE_PATH}.`
-            )
-          );
-          return;
-        }
-        reject(error);
-      };
-
-      const onListening = () => {
-        server.off("error", onError);
-        resolve();
-      };
-
-      server.once("error", onError);
-      server.once("listening", onListening);
-      server.listen(this.deps.config.port, this.deps.config.host);
+    this.webServer.once("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "EADDRINUSE") {
+        logger.error(
+          `Port ${this.deps.config.port} is already in use on ${this.deps.config.host}. Stop the existing process or change APP_PORT in ${CONFIG_FILE_PATH}.`
+        );
+      } else {
+        logger.error("Server start failed", error);
+      }
     });
-
-    logger.info(`Server running on http://${this.deps.config.host}:${this.deps.config.port}`);
   }
 
   private async stopServer(): Promise<void> {
@@ -184,13 +174,6 @@ export class RuntimeController {
     throw new Error(`No available mode to start. Check ${CONFIG_FILE_PATH} and provider initialization logs.`);
   }
 
-  /**
-   * 运行中重载配置并应用：
-   * 1) 重新读取磁盘配置
-   * 2) 重建上下文中的可变字段
-   * 3) 重新探测 Provider 可用性
-   * 4) 若服务正在运行，按原模式恢复；不可用时回退默认模式
-   */
   async reloadConfiguration(): Promise<void> {
     const wasRunning = this.webServer !== null;
     const previousMode = this.currentMode;

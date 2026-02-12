@@ -14,15 +14,19 @@
     "test:coverage": "vitest run --coverage",
     "test:ci": "vitest run --coverage --reporter=default",
     "api:test": "tsx scripts/api-endpoint-test.ts",
-    "chat:test": "npm run build && node scripts/chat-tester.mjs"
+    "chat:test": "npm run build && node scripts/chat-tester.mjs",
+    "onetest": "tsx scripts/onetest.ts"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "ai": "^6.0.82",
     "chrome-cookies-secure": "^3.0.1",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "hono": "^4.11.9",
     "mime-types": "^3.0.1",
     "picocolors": "^1.1.1",
     "prompts": "^2.4.2",

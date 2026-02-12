@@ -1,4 +1,5 @@
 import request from "supertest";
+import { createAdaptorServer } from "@hono/node-server";
 import { createSessionManagers } from "../../src/modules/sessions/sessionManager";
 import { createServerApp } from "../../src/server/app";
 import type { ApiContext } from "../../src/server/context";
@@ -7,6 +8,7 @@ import { FakeProvider } from "./provider.double";
 
 export interface ApiTestHarness {
   app: ReturnType<typeof createServerApp>;
+  server: ReturnType<typeof createAdaptorServer>;
   http: ReturnType<typeof request>;
   provider: FakeProvider;
   context: ApiContext;
@@ -27,9 +29,11 @@ export function createApiTestHarness(options?: {
   };
 
   const app = createServerApp(context);
+  const server = createAdaptorServer({ fetch: app.fetch });
   return {
     app,
-    http: request(app),
+    server,
+    http: request(server),
     provider,
     context
   };
