@@ -67,6 +67,7 @@ function parseArgs(argv) {
     endpoint: process.env.AI_ENDPOINT || "/v1/chat/completions",
     model: process.env.AI_MODEL || "gemini-2.5-pro",
     stream: process.env.AI_STREAM === "1" || process.env.AI_STREAM === "true",
+    streamRenderDelayMs: Math.max(0, Number(process.env.AI_STREAM_RENDER_DELAY_MS || 25) || 25),
     system: process.env.AI_SYSTEM || "",
     autoStart: true,
     baseUrlExplicit: hasBaseUrlFromEnv
@@ -93,6 +94,10 @@ function parseArgs(argv) {
     }
     if (arg === "--no-stream") {
       config.stream = false;
+      continue;
+    }
+    if ((arg === "--stream-render-delay" || arg === "-d") && argv[i + 1]) {
+      config.streamRenderDelayMs = Math.max(0, Number(argv[++i]) || 0);
       continue;
     }
     if ((arg === "--system" || arg === "-s") && argv[i + 1]) {
@@ -124,6 +129,8 @@ Options:
   -e, --endpoint <path>   Chat endpoint (default: /v1/chat/completions)
   -m, --model <name>      Model name (default: gemini-2.5-pro)
   -s, --system <text>     System prompt
+  -d, --stream-render-delay <ms>
+                          Delay between stream chunks in terminal (default: 25)
       --stream            Enable stream mode
       --no-stream         Disable stream mode
       --no-auto-start     Do not auto-start local service
@@ -138,6 +145,15 @@ Commands in chat:
   /model <name>           Change model
   /stream on|off          Toggle stream output
 `);
+}
+
+function printRuntimeCommandHelp() {
+  console.log("supported chat commands:");
+  console.log("  /help                   Show command help");
+  console.log("  /exit                   Exit");
+  console.log("  /clear                  Clear history");
+  console.log("  /model <name>           Change model");
+  console.log("  /stream on|off          Toggle stream output");
 }
 
 async function isServiceReachable(baseUrl) {
@@ -161,7 +177,9 @@ async function startLocalService() {
   return controller;
 }
 
-async function readStreamText(response) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function readStreamText(response, renderDelayMs = 0) {
   if (!response.body) return "";
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -192,6 +210,9 @@ async function readStreamText(response) {
           if (typeof delta === "string" && delta) {
             process.stdout.write(delta);
             outputText += delta;
+            if (renderDelayMs > 0) {
+              await sleep(renderDelayMs);
+            }
           }
         } catch {
           // Ignore non-JSON stream fragments.
@@ -223,7 +244,7 @@ async function chatOnce(config, messages) {
   }
 
   if (config.stream) {
-    return await readStreamText(response);
+    return await readStreamText(response, config.streamRenderDelayMs);
   }
 
   const json = await response.json();
@@ -233,6 +254,11 @@ async function chatOnce(config, messages) {
 function applyCommand(line, state) {
   const trimmed = line.trim();
   if (trimmed === "/exit") return { type: "exit" };
+
+  if (trimmed === "/help") {
+    printRuntimeCommandHelp();
+    return { type: "continue" };
+  }
 
   if (trimmed === "/clear") {
     state.messages = [];
@@ -301,7 +327,8 @@ async function main() {
   console.log(`target : ${config.baseUrl}${config.endpoint}`);
   console.log(`model  : ${config.model}`);
   console.log(`stream : ${config.stream ? "on" : "off"}`);
-  console.log("type /exit to quit");
+  console.log(`delay  : ${config.streamRenderDelayMs}ms/chunk`);
+  printRuntimeCommandHelp();
 
   try {
     while (true) {

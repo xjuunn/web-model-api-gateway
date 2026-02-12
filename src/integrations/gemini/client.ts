@@ -14,6 +14,32 @@ import { readGeminiCookiesFromBrowser } from "./browserCookies";
 import { extractJsonFromResponse, getNestedValue } from "./parsing";
 import { ChatLikeSession, Candidate, ModelOutput } from "./types";
 
+function isCandidateList(value: unknown): value is unknown[] {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value.some((item) => {
+    if (!Array.isArray(item)) return false;
+    const rcid = String(getNestedValue(item, [0], ""));
+    const text = String(getNestedValue(item, [1, 0], ""));
+    return Boolean(rcid && text);
+  });
+}
+
+function findBodyWithCandidates(node: unknown, depth = 0): unknown[] | null {
+  if (depth > 7) return null;
+  if (!Array.isArray(node)) return null;
+
+  const candidates = getNestedValue(node, [4]);
+  if (isCandidateList(candidates)) {
+    return node as unknown[];
+  }
+
+  for (const child of node) {
+    const found = findBodyWithCandidates(child, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 class GeminiChatSession implements ChatLikeSession {
   private metadata: (string | null)[] = [null, null, null];
 
@@ -210,23 +236,38 @@ export class GeminiWebClient {
     form.set("at", this.accessToken);
     form.set("f.req", JSON.stringify([null, JSON.stringify(promptPayload)]));
 
-    const response = await fetch(GEMINI_ENDPOINTS.GENERATE, {
-      method: "POST",
-      headers: {
-        ...GEMINI_DEFAULT_HEADERS,
-        ...modelHeaders,
-        Cookie: this.serializeCookies()
-      },
-      body: form,
-      ...this.requestOptions()
-    });
+    const requestGenerate = async (): Promise<unknown[]> => {
+      const requestForm = new URLSearchParams(form);
+      const response = await fetch(GEMINI_ENDPOINTS.GENERATE, {
+        method: "POST",
+        headers: {
+          ...GEMINI_DEFAULT_HEADERS,
+          ...modelHeaders,
+          Cookie: this.serializeCookies()
+        },
+        body: requestForm,
+        ...this.requestOptions()
+      });
 
-    if (!response.ok) {
-      throw new AppError(`Gemini generation failed with status ${response.status}`, 502);
+      if (!response.ok) {
+        throw new AppError(`Gemini generation failed with status ${response.status}`, 502);
+      }
+
+      const text = await response.text();
+      return extractJsonFromResponse(text);
+    };
+
+    let responseJson: unknown[] | null = null;
+    try {
+      responseJson = await requestGenerate();
+    } catch (error) {
+      if (error instanceof Error && /Could not parse Gemini response payload/.test(error.message)) {
+        logger.warn("Gemini payload parse failed once, retrying request.");
+        responseJson = await requestGenerate();
+      } else {
+        throw error;
+      }
     }
-
-    const text = await response.text();
-    const responseJson = extractJsonFromResponse(text);
 
     let body: unknown[] | null = null;
     for (const part of responseJson) {
@@ -236,13 +277,17 @@ export class GeminiWebClient {
       try {
         const parsed = JSON.parse(rawBody);
         const maybeCandidates = getNestedValue(parsed, [4]);
-        if (Array.isArray(maybeCandidates) && maybeCandidates.length > 0) {
+        if (isCandidateList(maybeCandidates)) {
           body = parsed;
           break;
         }
       } catch {
         // 缁х画
       }
+    }
+
+    if (!body) {
+      body = findBodyWithCandidates(responseJson);
     }
 
     if (!body) {
