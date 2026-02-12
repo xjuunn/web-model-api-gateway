@@ -2,8 +2,7 @@
 import { cors } from "hono/cors";
 import { logger } from "../core/logger";
 import type { ApiContext } from "../server/context";
-import { createOpenAIProtocolRouter } from "./protocols/openai";
-import { createGoogleGeminiProtocolRouter } from "./protocols/googleGemini";
+import { createGoogleGeminiProtocolRouter, createOpenAIProtocolRouter } from "./protocols";
 
 export function createGatewayApp(context: ApiContext): Hono {
   const app = new Hono();

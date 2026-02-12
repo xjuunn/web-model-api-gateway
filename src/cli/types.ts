@@ -8,6 +8,7 @@ export type CliAction =
   | "guide"
   | "switch-webai"
   | "switch-native-api"
+  | "switch-model"
   | "status"
   | "edit-config"
   | "exit";

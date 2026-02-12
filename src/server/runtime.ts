@@ -6,7 +6,8 @@ import { logger } from "../core/logger";
 import { createServerApp } from "./app";
 import { getProviderStatus, initializeProviders, ProviderStatus } from "../integrations/providers/registry";
 import { ApiContext, createApiContext } from "./context";
-import { createSessionManagers } from "../modules/sessions/sessionManager";
+import { createSessionManagers } from "../gateway/sessions/sessionManager";
+import { isSupportedModelId } from "../gateway/models/registrations";
 
 export type RuntimeMode = "webai" | "native-api";
 
@@ -16,6 +17,7 @@ export interface RuntimeState {
   currentMode: RuntimeMode | null;
   host: string;
   port: number;
+  defaultModel: string;
   activeProviderId: string;
   activeProviderAvailable: boolean;
 }
@@ -69,9 +71,18 @@ export class RuntimeController {
       currentMode: this.currentMode,
       host: this.deps.config.host,
       port: this.deps.config.port,
+      defaultModel: this.deps.context.defaultModel,
       activeProviderId: this.deps.config.activeProviderId,
       activeProviderAvailable: this.activeProviderAvailable
     };
+  }
+
+  setDefaultModel(modelId: string): void {
+    if (!isSupportedModelId(modelId)) {
+      throw new Error(`Unsupported model: ${modelId}`);
+    }
+    this.deps.context.defaultModel = modelId;
+    logger.info(`Switched default model to ${modelId}`);
   }
 
   async bootstrap(): Promise<void> {
@@ -126,6 +137,10 @@ export class RuntimeController {
     await new Promise<void>((resolve, reject) => {
       this.webServer!.close((err) => {
         if (err) {
+          if ((err as NodeJS.ErrnoException).code === "ERR_SERVER_NOT_RUNNING") {
+            resolve();
+            return;
+          }
           reject(err);
           return;
         }
@@ -189,7 +204,7 @@ export class RuntimeController {
     this.deps.config.defaultMode = env.APP_DEFAULT_MODE;
     this.deps.config.activeProviderId = env.APP_ACTIVE_PROVIDER;
 
-    this.deps.context.defaultModel = env.GEMINI_DEFAULT_MODEL;
+    this.deps.context.defaultModel = env.APP_DEFAULT_MODEL;
     this.deps.context.activeProviderId = env.APP_ACTIVE_PROVIDER;
     this.deps.context.sessions = createSessionManagers(this.deps.context.getProvider);
 

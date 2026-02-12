@@ -1,28 +1,23 @@
 ﻿import type { LanguageModelV3 } from "@ai-sdk/provider";
-import { env } from "../../config/env";
 import type { ApiContext } from "../../server/context";
-import { createOneTestLanguageModel } from "./oneTestLanguageModel";
-import { createWebGeminiLanguageModel } from "./webGeminiLanguageModel";
+import { type SupportedModelId, WEB_GEMINI_MODEL_IDS } from "./constants";
+import { isSupportedModelId, MODEL_FACTORIES, REGISTERED_MODEL_IDS } from "./registrations";
 
-const WEB_GEMINI_MODELS = ["gemini-3.0-pro", "gemini-2.5-pro", "gemini-2.5-flash"] as const;
-
-export type SupportedModelId = (typeof WEB_GEMINI_MODELS)[number] | "onetest-model";
+export type { SupportedModelId } from "./constants";
 
 export function listSupportedModelIds(): SupportedModelId[] {
-  const dynamic = new Set<SupportedModelId>([...WEB_GEMINI_MODELS, "onetest-model"]);
-  if (WEB_GEMINI_MODELS.includes(env.GEMINI_DEFAULT_MODEL as (typeof WEB_GEMINI_MODELS)[number])) {
-    dynamic.add(env.GEMINI_DEFAULT_MODEL as SupportedModelId);
-  }
-  return [...dynamic];
+  return [...REGISTERED_MODEL_IDS];
 }
 
 export function resolveLanguageModel(context: ApiContext, modelId?: string): LanguageModelV3 {
-  const id = (modelId || context.defaultModel) as SupportedModelId;
-  if (id === "onetest-model") {
-    return createOneTestLanguageModel();
+  const requestedModelId = modelId || context.defaultModel;
+  if (isSupportedModelId(requestedModelId)) {
+    return MODEL_FACTORIES[requestedModelId](context);
   }
-  if (!WEB_GEMINI_MODELS.includes(id as (typeof WEB_GEMINI_MODELS)[number])) {
-    return createWebGeminiLanguageModel(context, context.defaultModel);
+
+  if (isSupportedModelId(context.defaultModel)) {
+    return MODEL_FACTORIES[context.defaultModel](context);
   }
-  return createWebGeminiLanguageModel(context, id);
+
+  return MODEL_FACTORIES[WEB_GEMINI_MODEL_IDS[0]](context);
 }

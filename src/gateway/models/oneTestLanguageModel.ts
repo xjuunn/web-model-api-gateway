@@ -1,4 +1,5 @@
 ﻿import type { LanguageModelV3, LanguageModelV3StreamPart, LanguageModelV3Usage } from "@ai-sdk/provider";
+import { ONETEST_MODEL_ID, ONETEST_OUTPUT_TEXT } from "./constants";
 
 const usage: LanguageModelV3Usage = {
   inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
@@ -11,11 +12,11 @@ export function createOneTestLanguageModel(): LanguageModelV3 {
   return {
     specificationVersion: "v3",
     provider: "custom",
-    modelId: "onetest-model",
+    modelId: ONETEST_MODEL_ID,
     supportedUrls: {},
     async doGenerate() {
       return {
-        content: [{ type: "text", text: "onetest" }],
+        content: [{ type: "text", text: ONETEST_OUTPUT_TEXT }],
         finishReason,
         usage,
         warnings: []
@@ -26,7 +27,7 @@ export function createOneTestLanguageModel(): LanguageModelV3 {
       const parts: LanguageModelV3StreamPart[] = [
         { type: "stream-start", warnings: [] },
         { type: "text-start", id },
-        { type: "text-delta", id, delta: "onetest" },
+        { type: "text-delta", id, delta: ONETEST_OUTPUT_TEXT },
         { type: "text-end", id },
         { type: "finish", finishReason, usage }
       ];

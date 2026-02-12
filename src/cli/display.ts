@@ -1,6 +1,6 @@
-/**
+﻿/**
  * @file cli/display.ts
- * @description CLI 展示层：提供统一的视觉排版与状态展示。
+ * @description CLI display helpers: menu rendering, status and quick guides.
  */
 import pc from "picocolors";
 import { RuntimeMode, RuntimeState } from "../server/runtime";
@@ -9,11 +9,11 @@ import { CliChoice } from "./types";
 const LINE = "------------------------------------------------------------";
 
 function statusBadge(ok: boolean): string {
-  return ok ? pc.green("可用") : pc.red("不可用");
+  return ok ? pc.green("available") : pc.red("unavailable");
 }
 
 function modeBadge(mode: RuntimeMode | null): string {
-  if (!mode) return pc.gray("未启动");
+  if (!mode) return pc.gray("not-started");
   return mode === "webai" ? pc.cyan("WebAI") : pc.yellow("Native API");
 }
 
@@ -25,19 +25,20 @@ function printSection(title: string): void {
 export function renderBanner(): void {
   console.log("");
   console.log(pc.bgCyan(pc.black(" Web Model API Gateway CLI ")));
-  console.log(pc.gray("精简、清晰、可控"));
+  console.log(pc.gray("Simple, clear, controllable"));
   console.log(pc.gray(LINE));
 }
 
 export function renderGuide(mode: RuntimeMode, state: RuntimeState): void {
   const base = `http://${state.host}:${state.port}`;
 
-  printSection("服务信息");
-  console.log(`基础地址  : ${pc.cyan(base)}`);
-  console.log(`当前模式  : ${modeBadge(mode)}`);
-  console.log(`当前Provider: ${pc.bold(state.activeProviderId)} (${statusBadge(state.activeProviderAvailable)})`);
+  printSection("Service Info");
+  console.log(`Base URL        : ${pc.cyan(base)}`);
+  console.log(`Current Mode    : ${modeBadge(mode)}`);
+  console.log(`Current Model   : ${pc.bold(state.defaultModel)}`);
+  console.log(`Current Provider: ${pc.bold(state.activeProviderId)} (${statusBadge(state.activeProviderAvailable)})`);
 
-  printSection(mode === "webai" ? "WebAI 端点" : "原生 API 端点");
+  printSection(mode === "webai" ? "WebAI Endpoints" : "Native API Endpoints");
   if (mode === "webai") {
     console.log(`- ${base}/docs`);
     console.log(`- ${base}/gemini`);
@@ -56,63 +57,69 @@ export function renderGuide(mode: RuntimeMode, state: RuntimeState): void {
 }
 
 export function renderMenuHeader(state: RuntimeState): void {
-  printSection("当前状态");
+  printSection("Current Status");
   console.log(
-    `模式=${modeBadge(state.currentMode)} | WebAI=${statusBadge(state.webaiAvailable)} | Native API=${statusBadge(state.nativeApiAvailable)} | Provider=${state.activeProviderId}`
+    `mode=${modeBadge(state.currentMode)} | model=${state.defaultModel} | webai=${statusBadge(state.webaiAvailable)} | native=${statusBadge(state.nativeApiAvailable)} | provider=${state.activeProviderId}`
   );
 }
 
 export function renderStatus(state: RuntimeState): void {
-  printSection("运行状态");
-  console.log(`模式        : ${modeBadge(state.currentMode)}`);
-  console.log(`WebAI       : ${statusBadge(state.webaiAvailable)}`);
-  console.log(`Native API  : ${statusBadge(state.nativeApiAvailable)}`);
-  console.log(`Provider    : ${state.activeProviderId}`);
-  console.log(`Provider状态: ${statusBadge(state.activeProviderAvailable)}`);
-  console.log(`监听地址    : http://${state.host}:${state.port}`);
+  printSection("Runtime Status");
+  console.log(`Mode         : ${modeBadge(state.currentMode)}`);
+  console.log(`WebAI        : ${statusBadge(state.webaiAvailable)}`);
+  console.log(`Native API   : ${statusBadge(state.nativeApiAvailable)}`);
+  console.log(`Model        : ${state.defaultModel}`);
+  console.log(`Provider     : ${state.activeProviderId}`);
+  console.log(`Provider Ok  : ${statusBadge(state.activeProviderAvailable)}`);
+  console.log(`Listen       : http://${state.host}:${state.port}`);
   console.log(pc.gray(LINE));
 }
 
 export function buildChoices(state: RuntimeState): CliChoice[] {
-  const unavailable = pc.gray("(不可用)");
+  const unavailable = pc.gray("(unavailable)");
   return [
     {
-      title: "查看 API 指南",
-      description: "显示当前地址与可用端点",
+      title: "Show API guide",
+      description: "Display current base URL and endpoints",
       value: "guide"
     },
     {
-      title: state.webaiAvailable ? "切换到 WebAI 模式" : `切换到 WebAI 模式 ${unavailable}`,
-      description: "启用 WebAI 路由集",
+      title: state.webaiAvailable ? "Switch to WebAI" : `Switch to WebAI ${unavailable}`,
+      description: "Use WebAI routing",
       value: "switch-webai"
     },
     {
-      title: state.nativeApiAvailable ? "切换到原生 API 模式" : `切换到原生 API 模式 ${unavailable}`,
-      description: "启用 OpenAI 兼容路由集",
+      title: state.nativeApiAvailable ? "Switch to Native API" : `Switch to Native API ${unavailable}`,
+      description: "Use OpenAI-compatible routing",
       value: "switch-native-api"
     },
     {
-      title: "查看运行状态",
-      description: "检查模式、Provider 与可用性",
+      title: "Switch model (hot)",
+      description: "Change default model without restart",
+      value: "switch-model"
+    },
+    {
+      title: "Show runtime status",
+      description: "Inspect mode/provider/model availability",
       value: "status"
     },
     {
-      title: "修改配置并立即应用",
-      description: "打开配置向导并在运行中重载",
+      title: "Edit config and apply now",
+      description: "Open config wizard and hot-reload runtime",
       value: "edit-config"
     },
     {
-      title: "停止并退出",
-      description: "安全关闭服务并退出 CLI",
+      title: "Stop and exit",
+      description: "Safely close server and exit CLI",
       value: "exit"
     }
   ];
 }
 
 export function renderStopped(): void {
-  console.log(pc.green("服务已停止，已退出。"));
+  console.log(pc.green("Server stopped, CLI exited."));
 }
 
 export function getSelectPrompt(): string {
-  return "请选择操作";
+  return "Choose an action";
 }

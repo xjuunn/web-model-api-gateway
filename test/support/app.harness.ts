@@ -1,6 +1,6 @@
-import request from "supertest";
+﻿import request from "supertest";
 import { createAdaptorServer } from "@hono/node-server";
-import { createSessionManagers } from "../../src/modules/sessions/sessionManager";
+import { createSessionManagers } from "../../src/gateway/sessions/sessionManager";
 import { createServerApp } from "../../src/server/app";
 import type { ApiContext } from "../../src/server/context";
 import type { WebModelProvider } from "../../src/integrations/providers/types";

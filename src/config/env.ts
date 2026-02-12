@@ -13,7 +13,8 @@ const AppConfigSchema = z
     APP_HOST: z.string().min(1).default("localhost"),
     APP_PORT: z.coerce.number().int().min(1).max(65535).default(9091),
     APP_DEFAULT_MODE: z.enum(["auto", "webai", "native-api"]).default("auto"),
-    APP_ACTIVE_PROVIDER: z.enum(["gemini-web"]).default("gemini-web"),
+    APP_ACTIVE_PROVIDER: z.enum(["gemini-web", "openai-web"]).default("gemini-web"),
+    APP_DEFAULT_MODEL: z.string().min(1).default("gemini-2.5-flash"),
     ENABLE_GEMINI: z.boolean().default(true),
     GEMINI_BROWSER: BrowserSchema.default("chrome"),
     GEMINI_DEFAULT_MODEL: z
@@ -24,7 +25,10 @@ const AppConfigSchema = z
     GEMINI_HTTP_PROXY: z.string().optional(),
     GEMINI_ALLOW_BROWSER_COOKIES: z.boolean().default(false),
     GEMINI_DEBUG_SAVE_INIT_HTML: z.boolean().default(false),
-    GEMINI_RETRY_WITHOUT_PROXY: z.boolean().default(false)
+    GEMINI_RETRY_WITHOUT_PROXY: z.boolean().default(false),
+    ENABLE_OPENAI_WEB: z.boolean().default(false),
+    OPENAI_WEB_BASE_URL: z.string().default("https://api.openai.com"),
+    OPENAI_WEB_API_KEY: z.string().optional()
   })
   .strict();
 

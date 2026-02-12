@@ -1,0 +1,1 @@
+﻿export { createGatewayApp } from "./app";

@@ -16,9 +16,15 @@ function hasGeminiCredential(config: AppEnv): boolean {
   return Boolean(config.GEMINI_COOKIE_1PSID && config.GEMINI_COOKIE_1PSIDTS);
 }
 
+function hasOpenAIWebCredential(config: AppEnv): boolean {
+  if (!config.ENABLE_OPENAI_WEB) return true;
+  return Boolean(config.OPENAI_WEB_API_KEY);
+}
+
 function needsInteractiveSetup(config: AppEnv): boolean {
   if (!hasConfigFile()) return true;
   if (!hasGeminiCredential(config)) return true;
+  if (!hasOpenAIWebCredential(config)) return true;
   return false;
 }
 

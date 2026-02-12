@@ -6,6 +6,7 @@ import { CONFIG_FILE_PATH, env } from "../../config/env";
 import { AppError } from "../../core/errors";
 import { logger } from "../../core/logger";
 import { GeminiWebProvider } from "./geminiProvider";
+import { OpenAIWebProvider } from "./openaiWebProvider";
 import { WebModelProvider } from "./types";
 
 export interface ProviderStatus {
@@ -24,6 +25,7 @@ function registerProvider(provider: WebModelProvider): void {
 }
 
 registerProvider(new GeminiWebProvider());
+registerProvider(new OpenAIWebProvider());
 
 export async function initializeProviders(): Promise<ProviderStatus[]> {
   const statuses: ProviderStatus[] = [];

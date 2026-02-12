@@ -1,7 +1,7 @@
-import { createServer } from "node:http";
+﻿import { createServer } from "node:http";
 import { once } from "node:events";
 import { createServerApp } from "../src/server/app";
-import { createSessionManagers } from "../src/modules/sessions/sessionManager";
+import { createSessionManagers } from "../src/gateway/sessions/sessionManager";
 import type { ApiContext } from "../src/server/context";
 import type { ProviderChatSession, ProviderOutput, WebModelProvider } from "../src/integrations/providers/types";
 

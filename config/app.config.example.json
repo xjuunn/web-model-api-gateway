@@ -4,6 +4,7 @@
   "APP_PORT": 9091,
   "APP_DEFAULT_MODE": "auto",
   "APP_ACTIVE_PROVIDER": "gemini-web",
+  "APP_DEFAULT_MODEL": "gemini-2.5-flash",
   "ENABLE_GEMINI": true,
   "GEMINI_BROWSER": "chrome",
   "GEMINI_DEFAULT_MODEL": "gemini-2.5-flash",
@@ -12,5 +13,8 @@
   "GEMINI_HTTP_PROXY": "",
   "GEMINI_ALLOW_BROWSER_COOKIES": false,
   "GEMINI_DEBUG_SAVE_INIT_HTML": false,
-  "GEMINI_RETRY_WITHOUT_PROXY": false
+  "GEMINI_RETRY_WITHOUT_PROXY": false,
+  "ENABLE_OPENAI_WEB": false,
+  "OPENAI_WEB_BASE_URL": "https://api.openai.com",
+  "OPENAI_WEB_API_KEY": ""
 }

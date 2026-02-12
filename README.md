@@ -1,37 +1,47 @@
-# Web Model API Gateway (TypeScript)
+﻿# Web Model API Gateway (TypeScript)
 
-Type-safe TypeScript gateway for web-based Gemini access with OpenAI-compatible APIs.
+AI protocol translation gateway built with Vercel AI SDK + Hono.
 
 Chinese documentation: [docs/README.zh-CN.md](docs/README.zh-CN.md)
-Full API documentation (Chinese): [docs/API.zh-CN.md](docs/API.zh-CN.md)
+API documentation (Chinese): [docs/API.zh-CN.md](docs/API.zh-CN.md)
 Architecture guide: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## What This Project Provides
 
-- OpenAI-compatible endpoints (`/v1/responses`, `/v1/chat/completions`, `/v1/models`)
-- Gemini-oriented endpoints (`/gemini`, `/gemini-chat`, `/translate`)
-- Google-style endpoint (`/v1beta/models/:model`)
-- Provider-based architecture for future web-model integrations
-- Interactive CLI with runtime mode switching:
-  - `webai`
-  - `native-api`
+- OpenAI-compatible endpoints:
+  - `POST /v1/chat/completions`
+  - `POST /v1/responses`
+  - `GET /v1/models`
+  - `GET /v1/models/:model`
+- Gemini/Web endpoints:
+  - `POST /gemini`
+  - `POST /gemini-chat`
+  - `POST /translate`
+- Google-style endpoint:
+  - `POST /v1beta/models/:model`
+- Unified model abstraction via Vercel AI SDK `LanguageModelV3`
+- Hono HTTP server runtime
 
 ## Tech Stack
 
 - Node.js `>=20`
 - TypeScript (`strict`)
-- Express + CORS
-- `zod` for environment validation
+- Hono + `@hono/node-server`
+- Vercel AI SDK (`ai`)
+- `zod` for schema validation
 - `undici` for network integration
 
 ## Project Structure
 
-- `src/index.ts`: main entry point
-- `src/server`: app assembly and runtime controller
-- `src/modules`: API route modules
-- `src/integrations`: provider and Gemini integration layer
-- `src/cli`: interactive CLI workflow (display/actions/types)
-- `src/config/env.ts`: `config/app.config.json` loading and validation
+- `src/index.ts`: process entry + CLI
+- `src/server`: runtime lifecycle and context composition
+- `src/gateway/app.ts`: Hono app assembly
+- `src/gateway/protocols`: protocol adapters (OpenAI/Responses/Gemini)
+- `src/gateway/models`: model registry + `LanguageModelV3` adapters
+- `src/gateway/sessions`: provider-backed session state
+- `src/integrations`: provider and Gemini web integration
+- `src/config/env.ts`: config loading + validation (`config/app.config.json`)
+- `src/cli`: interactive runtime CLI
 
 ## Setup
 
@@ -42,14 +52,12 @@ npm install
 
 2. Create local config file:
 ```bash
-copy .\config\app.config.example.json .\config\app.config.json
+copy .\\config\\app.config.example.json .\\config\\app.config.json
 ```
 
 3. Fill required Gemini cookies in `config/app.config.json`:
 - `GEMINI_COOKIE_1PSID`
 - `GEMINI_COOKIE_1PSIDTS`
-
-If the config file is missing or key fields are incomplete, the CLI setup wizard will prompt and persist config automatically.
 
 4. Build and start:
 ```bash
@@ -59,46 +67,19 @@ npm start
 
 ## Scripts
 
-- `npm run dev`: run in watch mode with `tsx`
-- `npm run typecheck`: run TypeScript checks only
+- `npm run dev`: watch mode with `tsx`
+- `npm run typecheck`: TypeScript checks only
 - `npm run build`: compile to `dist/`
-
-## Runtime Modes
-
-- `webai`: Gemini-focused gateway routes
-- `native-api`: OpenAI-compatible native API route set
-
-Default mode is controlled by:
-- `APP_DEFAULT_MODE=auto|webai|native-api`
+- `npm run test`: run test suite
+- `npm run onetest`: run custom `LanguageModelV3` demo
 
 ## API Base URL
 
-Default:
-- `http://localhost:9091`
-
-## API Endpoints
-
-General:
-- `GET /`
-- `GET /docs`
-
-OpenAI-compatible:
-- `POST /v1/responses`
-- `POST /v1/chat/completions`
-- `GET /v1/models`
-- `GET /v1/models/:model`
-
-Gemini/Web gateway:
-- `POST /gemini`
-- `POST /gemini-chat`
-- `POST /translate`
-
-Google-style:
-- `POST /v1beta/models/:model`
+Default: `http://localhost:9091`
 
 ## Configuration
 
-See `config/app.config.example.json` for the complete list.
+See `config/app.config.example.json` for the full list.
 
 Key variables:
 - `APP_HOST`
@@ -112,9 +93,6 @@ Key variables:
 
 ## Notes
 
-- This TypeScript runtime uses `config/app.config.json` as the primary configuration source.
+- Primary config source is `config/app.config.json`.
 - Browser cookie extraction can be enabled with `GEMINI_ALLOW_BROWSER_COOKIES=true`.
-- If initialization fails and diagnostics are needed, set:
-  - `GEMINI_DEBUG_SAVE_INIT_HTML=true`
-  - then inspect `debug-gemini-init.html`
-
+- For init diagnostics, set `GEMINI_DEBUG_SAVE_INIT_HTML=true` and inspect `debug-gemini-init.html`.

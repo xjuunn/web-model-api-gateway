@@ -1,6 +1,6 @@
-/**
- * @file modules/sessions/sessionManager.ts
- * @description 会话管理模块：在请求间保持 Provider 聊天状态。
+﻿/**
+ * @file gateway/sessions/sessionManager.ts
+ * @description Session management for provider-backed conversational state.
  */
 import { ProviderChatSession, WebModelProvider } from "../../integrations/providers/types";
 

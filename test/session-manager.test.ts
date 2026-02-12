@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { SessionManager } from "../src/modules/sessions/sessionManager";
+﻿import { describe, expect, it } from "vitest";
+import { SessionManager } from "../src/gateway/sessions/sessionManager";
 import { FakeProvider } from "./support/provider.double";
 
 describe("SessionManager", () => {

@@ -1,6 +1,7 @@
 ﻿/**
  * @file integrations/gemini/client.ts
- * @description Gemini Web 瀹㈡埛绔細璐熻矗鍒濆鍖栥€佽姹傛墽琛屼笌鍝嶅簲瑙ｆ瀽銆? */
+ * @description Gemini Web 客户端，用于初始化、请求执行和响应解析。
+ * */
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { lookup as getMimeType } from "mime-types";
