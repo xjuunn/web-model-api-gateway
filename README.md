@@ -30,7 +30,7 @@ Architecture guide: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - `src/modules`: API route modules
 - `src/integrations`: provider and Gemini integration layer
 - `src/cli`: interactive CLI workflow (display/actions/types)
-- `src/config/env.ts`: `.env` parsing and validation
+- `src/config/env.ts`: `config/app.config.json` loading and validation
 
 ## Setup
 
@@ -39,14 +39,16 @@ Architecture guide: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 npm install
 ```
 
-2. Create local environment file:
+2. Create local config file:
 ```bash
-copy .\.env.example .\.env
+copy .\config\app.config.example.json .\config\app.config.json
 ```
 
-3. Fill required Gemini cookies in `.env`:
+3. Fill required Gemini cookies in `config/app.config.json`:
 - `GEMINI_COOKIE_1PSID`
 - `GEMINI_COOKIE_1PSIDTS`
+
+If the config file is missing or key fields are incomplete, the CLI setup wizard will prompt and persist config automatically.
 
 4. Build and start:
 ```bash
@@ -93,9 +95,9 @@ Gemini/Web gateway:
 Google-style:
 - `POST /v1beta/models/:model`
 
-## Environment Variables
+## Configuration
 
-See `.env.example` for the complete list and comments.
+See `config/app.config.example.json` for the complete list.
 
 Key variables:
 - `APP_HOST`
@@ -109,7 +111,7 @@ Key variables:
 
 ## Notes
 
-- This TypeScript runtime uses `.env` as the primary configuration source.
+- This TypeScript runtime uses `config/app.config.json` as the primary configuration source.
 - Browser cookie extraction can be enabled with `GEMINI_ALLOW_BROWSER_COOKIES=true`.
 - If initialization fails and diagnostics are needed, set:
   - `GEMINI_DEBUG_SAVE_INIT_HTML=true`

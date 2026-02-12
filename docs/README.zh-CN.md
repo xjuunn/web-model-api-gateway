@@ -30,12 +30,14 @@ npm install
 
 2. 创建配置文件：
 ```bash
-copy .\\.env.example .\\.env
+copy .\\config\\app.config.example.json .\\config\\app.config.json
 ```
 
-3. 在 `.env` 中填写 Gemini Cookie：
+3. 在 `config/app.config.json` 中填写 Gemini Cookie：
 - `GEMINI_COOKIE_1PSID`
 - `GEMINI_COOKIE_1PSIDTS`
+
+如果配置文件不存在或关键字段缺失，CLI 会自动进入配置向导并持久化保存。
 
 4. 构建并启动：
 ```bash
@@ -56,14 +58,14 @@ npm start
 - `src/modules`：路由模块
 - `src/integrations`：Provider 与 Gemini 集成
 - `src/cli`：CLI 展示层与动作层
-- `src/config/env.ts`：环境变量校验与导出
+- `src/config/env.ts`：JSON 配置校验、加载与持久化
 
 ## 运行模式
 
 - `webai`：偏向 Gemini 网关路由
 - `native-api`：偏向 OpenAI 兼容接口
 
-默认模式由 `.env` 控制：
+默认模式由 `config/app.config.json` 控制：
 - `APP_DEFAULT_MODE=auto|webai|native-api`
 
 ## 默认地址
@@ -72,7 +74,7 @@ npm start
 
 ## 备注
 
-- TypeScript 版本运行时以 `.env` 为主配置来源。
+- TypeScript 版本运行时以 `config/app.config.json` 为主配置来源。
 - 可通过 `GEMINI_ALLOW_BROWSER_COOKIES=true` 启用浏览器 Cookie 读取。
 - 若初始化失败需要排查，可开启：
   - `GEMINI_DEBUG_SAVE_INIT_HTML=true`

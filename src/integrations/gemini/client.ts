@@ -1,13 +1,12 @@
-/**
+﻿/**
  * @file integrations/gemini/client.ts
- * @description Gemini Web 客户端：负责初始化、请求执行与响应解析。
- */
+ * @description Gemini Web 瀹㈡埛绔細璐熻矗鍒濆鍖栥€佽姹傛墽琛屼笌鍝嶅簲瑙ｆ瀽銆? */
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { lookup as getMimeType } from "mime-types";
 import { ProxyAgent } from "undici";
 
-import { env } from "../../config/env";
+import { CONFIG_FILE_PATH, env } from "../../config/env";
 import { AppError } from "../../core/errors";
 import { logger } from "../../core/logger";
 import { GEMINI_DEFAULT_HEADERS, GEMINI_ENDPOINTS, GEMINI_MODEL_HEADERS } from "./constants";
@@ -98,7 +97,7 @@ export class GeminiWebClient {
 
     if (!p1 || !p2) {
       throw new AppError(
-        "Missing Gemini cookies. Set GEMINI_COOKIE_1PSID and GEMINI_COOKIE_1PSIDTS in .env (or enable GEMINI_ALLOW_BROWSER_COOKIES=true).",
+        `Missing Gemini cookies. Set GEMINI_COOKIE_1PSID and GEMINI_COOKIE_1PSIDTS in ${CONFIG_FILE_PATH} (or enable GEMINI_ALLOW_BROWSER_COOKIES=true).`,
         503
       );
     }
@@ -108,7 +107,7 @@ export class GeminiWebClient {
       "__Secure-1PSIDTS": p2
     };
 
-    // 与 gemini_webapi 策略保持一致：先通过 google.com 预热 Cookie。
+    // Align with gemini_webapi strategy: warm up cookies from google.com first.
     try {
       const warmup = await fetch("https://www.google.com", {
         method: "GET",
@@ -130,7 +129,7 @@ export class GeminiWebClient {
     let text = await response.text();
     let token = this.extractAccessToken(text);
 
-    // 代理可能返回挑战页或登录页 HTML；失败前先在无代理下重试一次。
+    // Proxy can return challenge/login HTML; retry once without proxy before failing.
     if (!token && env.GEMINI_HTTP_PROXY && env.GEMINI_RETRY_WITHOUT_PROXY) {
       logger.warn("Token not found via proxy path, retrying Gemini init without proxy.");
       try {
@@ -242,7 +241,7 @@ export class GeminiWebClient {
           break;
         }
       } catch {
-        // 继续
+        // 缁х画
       }
     }
 

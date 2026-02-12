@@ -6,10 +6,11 @@ import { env } from "./config/env";
 import { setLogLevel, logger } from "./core/logger";
 import { createRuntimeController } from "./server/composition";
 import { runCli } from "./cli/runCli";
-
-setLogLevel(env.LOG_LEVEL);
+import { ensureConfigWithCli } from "./cli/configWizard";
 
 async function main() {
+  await ensureConfigWithCli();
+  setLogLevel(env.LOG_LEVEL);
   const controller = createRuntimeController();
 
   const cleanup = async () => {

@@ -1,7 +1,8 @@
 ﻿node_modules
 dist
-.env
+config/app.config.json
 
 # local debug artifacts
 debug-gemini-init.html
 trace2.txt
+

@@ -2,7 +2,7 @@
  * @file integrations/providers/registry.ts
  * @description Provider 注册表：用于生命周期管理与当前 Provider 查询。
  */
-import { env } from "../../config/env";
+import { CONFIG_FILE_PATH, env } from "../../config/env";
 import { AppError } from "../../core/errors";
 import { logger } from "../../core/logger";
 import { GeminiWebProvider } from "./geminiProvider";
@@ -37,7 +37,7 @@ export async function initializeProviders(): Promise<ProviderStatus[]> {
         label: provider.label,
         enabled,
         available: false,
-        error: "Disabled via .env"
+        error: `Disabled via config: ${CONFIG_FILE_PATH}`
       });
       continue;
     }
@@ -73,7 +73,7 @@ export function getPrimaryProviderOrThrow(): WebModelProvider {
   const provider = providers.get(env.APP_ACTIVE_PROVIDER);
   if (!provider) {
     throw new AppError(
-      `Active provider '${env.APP_ACTIVE_PROVIDER}' is not registered. Update APP_ACTIVE_PROVIDER in .env.`,
+      `Active provider '${env.APP_ACTIVE_PROVIDER}' is not registered. Update APP_ACTIVE_PROVIDER in ${CONFIG_FILE_PATH}.`,
       503
     );
   }

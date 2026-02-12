@@ -5,11 +5,9 @@
 import pc from "picocolors";
 import { RuntimeController, RuntimeMode, RuntimeState } from "../server/runtime";
 import { CliAction } from "./types";
-import { bi, renderGuide, renderStatus } from "./display";
+import { renderGuide, renderStatus } from "./display";
+import { ensureConfigWithCli } from "./configWizard";
 
-/**
- * 执行单个 CLI 动作并返回是否继续循环。
- */
 export async function executeAction(
   action: CliAction | undefined,
   state: RuntimeState,
@@ -27,6 +25,11 @@ export async function executeAction(
     return true;
   }
 
+  if (action === "edit-config") {
+    await handleEditConfig(controller);
+    return true;
+  }
+
   if (action === "switch-webai") {
     return await handleSwitch("webai", state, controller);
   }
@@ -34,39 +37,51 @@ export async function executeAction(
   return await handleSwitch("native-api", state, controller);
 }
 
-/**
- * 执行模式切换并输出切换结果。
- */
 async function handleSwitch(
   targetMode: RuntimeMode,
   state: RuntimeState,
   controller: RuntimeController
 ): Promise<boolean> {
   if (targetMode === "webai" && !state.webaiAvailable) {
-    console.log(pc.red(bi("WebAI mode is unavailable.", "WebAI 模式不可用。")));
+    console.log(pc.red("无法切换：WebAI 模式当前不可用。"));
     return true;
   }
   if (targetMode === "native-api" && !state.nativeApiAvailable) {
-    console.log(pc.red(bi("Native API mode is unavailable.", "原生 API 模式不可用。")));
+    console.log(pc.red("无法切换：原生 API 模式当前不可用。"));
     return true;
   }
   if (state.currentMode === targetMode) {
-    const text =
-      targetMode === "webai"
-        ? bi("Already in WebAI mode.", "当前已是 WebAI 模式。")
-        : bi("Already in Native API mode.", "当前已是原生 API 模式。");
-    console.log(pc.gray(text));
+    console.log(pc.gray(targetMode === "webai" ? "当前已经是 WebAI 模式。" : "当前已经是原生 API 模式。"));
     return true;
   }
 
-  const switching =
-    targetMode === "webai"
-      ? bi("Switching to WebAI...", "正在切换到 WebAI...")
-      : bi("Switching to Native API...", "正在切换到原生 API...");
-  console.log(pc.gray(switching));
-
+  console.log(pc.gray(targetMode === "webai" ? "正在切换到 WebAI 模式..." : "正在切换到原生 API 模式..."));
   await controller.switchMode(targetMode);
+
   const updated = controller.getState();
   renderGuide(targetMode, updated);
   return true;
+}
+
+async function handleEditConfig(controller: RuntimeController): Promise<void> {
+  try {
+    const saved = await ensureConfigWithCli({ force: true });
+    if (!saved) {
+      console.log(pc.gray("配置未变更，继续使用当前运行配置。"));
+      return;
+    }
+
+    console.log(pc.gray("正在应用新配置并重载运行时..."));
+    await controller.reloadConfiguration();
+    console.log(pc.green("配置已应用，运行时重载完成。"));
+
+    const state = controller.getState();
+    if (state.currentMode) {
+      renderGuide(state.currentMode, state);
+    } else {
+      renderStatus(state);
+    }
+  } catch (error) {
+    console.log(pc.red(`配置应用失败：${String(error)}`));
+  }
 }

@@ -4,7 +4,13 @@
  */
 import { RuntimeMode, RuntimeState } from "../server/runtime";
 
-export type CliAction = "guide" | "switch-webai" | "switch-native-api" | "status" | "exit";
+export type CliAction =
+  | "guide"
+  | "switch-webai"
+  | "switch-native-api"
+  | "status"
+  | "edit-config"
+  | "exit";
 
 export interface CliChoice {
   title: string;

@@ -1,0 +1,16 @@
+{
+  "LOG_LEVEL": "info",
+  "APP_HOST": "localhost",
+  "APP_PORT": 9091,
+  "APP_DEFAULT_MODE": "auto",
+  "APP_ACTIVE_PROVIDER": "gemini-web",
+  "ENABLE_GEMINI": true,
+  "GEMINI_BROWSER": "chrome",
+  "GEMINI_DEFAULT_MODEL": "gemini-2.5-flash",
+  "GEMINI_COOKIE_1PSID": "",
+  "GEMINI_COOKIE_1PSIDTS": "",
+  "GEMINI_HTTP_PROXY": "",
+  "GEMINI_ALLOW_BROWSER_COOKIES": false,
+  "GEMINI_DEBUG_SAVE_INIT_HTML": false,
+  "GEMINI_RETRY_WITHOUT_PROXY": false
+}

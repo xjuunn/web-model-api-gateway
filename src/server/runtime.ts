@@ -1,13 +1,14 @@
 /**
  * @file server/runtime.ts
- * @description 运行时控制器：负责 Provider 引导、模式启动、切换与关闭。
+ * @description 运行时控制器：负责 Provider 引导、模式启动、切换、配置重载与关闭。
  */
 import { createServer, Server } from "node:http";
-import { env } from "../config/env";
+import { CONFIG_FILE_PATH, env, reloadEnvFromDisk } from "../config/env";
 import { logger } from "../core/logger";
 import { createServerApp } from "./app";
 import { getProviderStatus, initializeProviders, ProviderStatus } from "../integrations/providers/registry";
 import { ApiContext, createApiContext } from "./context";
+import { createSessionManagers } from "../modules/sessions/sessionManager";
 
 export type RuntimeMode = "webai" | "native-api";
 
@@ -54,8 +55,6 @@ export function createDefaultRuntimeDependencies(): RuntimeDependencies {
 export class RuntimeController {
   private webServer: Server | null = null;
   private readonly deps: RuntimeDependencies;
-  private readonly host: string;
-  private readonly port: number;
   private webaiAvailable = false;
   private nativeApiAvailable = true;
   private currentMode: RuntimeMode | null = null;
@@ -63,28 +62,20 @@ export class RuntimeController {
 
   constructor(deps: RuntimeDependencies = createDefaultRuntimeDependencies()) {
     this.deps = deps;
-    this.host = deps.config.host;
-    this.port = deps.config.port;
   }
 
-  /**
-   * 返回当前运行时状态快照。
-   */
   getState(): RuntimeState {
     return {
       webaiAvailable: this.webaiAvailable,
       nativeApiAvailable: this.nativeApiAvailable,
       currentMode: this.currentMode,
-      host: this.host,
-      port: this.port,
+      host: this.deps.config.host,
+      port: this.deps.config.port,
       activeProviderId: this.deps.config.activeProviderId,
       activeProviderAvailable: this.activeProviderAvailable
     };
   }
 
-  /**
-   * 初始化 Provider 可用性并记录状态。
-   */
   async bootstrap(): Promise<void> {
     logger.info("Checking runtime availability...");
     await this.deps.initializeProviders();
@@ -106,9 +97,6 @@ export class RuntimeController {
     logger.info(`Native API mode: ${this.nativeApiAvailable ? "available" : "unavailable"}`);
   }
 
-  /**
-   * 启动本地 HTTP 服务。
-   */
   private async startServer(): Promise<void> {
     if (this.webServer) return;
 
@@ -122,7 +110,7 @@ export class RuntimeController {
         if (error.code === "EADDRINUSE") {
           reject(
             new Error(
-              `Port ${this.port} is already in use on ${this.host}. Stop the existing process or change APP_PORT in .env.`
+              `Port ${this.deps.config.port} is already in use on ${this.deps.config.host}. Stop the existing process or change APP_PORT in ${CONFIG_FILE_PATH}.`
             )
           );
           return;
@@ -137,15 +125,12 @@ export class RuntimeController {
 
       server.once("error", onError);
       server.once("listening", onListening);
-      server.listen(this.port, this.host);
+      server.listen(this.deps.config.port, this.deps.config.host);
     });
 
-    logger.info(`Server running on http://${this.host}:${this.port}`);
+    logger.info(`Server running on http://${this.deps.config.host}:${this.deps.config.port}`);
   }
 
-  /**
-   * 关闭本地 HTTP 服务。
-   */
   private async stopServer(): Promise<void> {
     if (!this.webServer) return;
     await new Promise<void>((resolve, reject) => {
@@ -160,9 +145,6 @@ export class RuntimeController {
     this.webServer = null;
   }
 
-  /**
-   * 切换运行模式。
-   */
   async switchMode(mode: RuntimeMode): Promise<void> {
     if (this.currentMode === mode) return;
 
@@ -178,9 +160,6 @@ export class RuntimeController {
     logger.info(`Switched mode to ${mode}`);
   }
 
-  /**
-   * 根据默认配置启动模式。
-   */
   async startDefaultMode(): Promise<RuntimeMode> {
     const preferred = this.deps.config.defaultMode;
 
@@ -202,12 +181,53 @@ export class RuntimeController {
       return "native-api";
     }
 
-    throw new Error("No available mode to start. Check .env and provider initialization logs.");
+    throw new Error(`No available mode to start. Check ${CONFIG_FILE_PATH} and provider initialization logs.`);
   }
 
   /**
-   * 关闭运行时资源。
+   * 运行中重载配置并应用：
+   * 1) 重新读取磁盘配置
+   * 2) 重建上下文中的可变字段
+   * 3) 重新探测 Provider 可用性
+   * 4) 若服务正在运行，按原模式恢复；不可用时回退默认模式
    */
+  async reloadConfiguration(): Promise<void> {
+    const wasRunning = this.webServer !== null;
+    const previousMode = this.currentMode;
+
+    if (wasRunning) {
+      await this.stopServer();
+    }
+    this.currentMode = null;
+
+    reloadEnvFromDisk();
+    this.deps.config.host = env.APP_HOST;
+    this.deps.config.port = env.APP_PORT;
+    this.deps.config.defaultMode = env.APP_DEFAULT_MODE;
+    this.deps.config.activeProviderId = env.APP_ACTIVE_PROVIDER;
+
+    this.deps.context.defaultModel = env.GEMINI_DEFAULT_MODEL;
+    this.deps.context.activeProviderId = env.APP_ACTIVE_PROVIDER;
+    this.deps.context.sessions = createSessionManagers(this.deps.context.getProvider);
+
+    await this.bootstrap();
+
+    if (!wasRunning) return;
+
+    if (previousMode) {
+      if (previousMode === "webai" && this.webaiAvailable) {
+        await this.switchMode("webai");
+        return;
+      }
+      if (previousMode === "native-api" && this.nativeApiAvailable) {
+        await this.switchMode("native-api");
+        return;
+      }
+    }
+
+    await this.startDefaultMode();
+  }
+
   async shutdown(): Promise<void> {
     await this.stopServer();
     this.currentMode = null;
