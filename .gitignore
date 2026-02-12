@@ -1,0 +1,7 @@
+﻿node_modules
+dist
+.env
+
+# local debug artifacts
+debug-gemini-init.html
+trace2.txt

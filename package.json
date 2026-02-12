@@ -1,0 +1,36 @@
+{
+  "name": "web-model-api-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Type-safe TypeScript gateway for Gemini WebAI with interactive CLI",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "chrome-cookies-secure": "^3.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "mime-types": "^3.0.1",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2",
+    "undici": "^7.15.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "^22.13.4",
+    "@types/prompts": "^2.4.9",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.2"
+  }
+}
