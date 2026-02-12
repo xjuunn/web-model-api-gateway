@@ -4,13 +4,13 @@
  */
 import { env } from "./config/env";
 import { setLogLevel, logger } from "./core/logger";
-import { RuntimeController } from "./server/runtime";
+import { createRuntimeController } from "./server/composition";
 import { runCli } from "./cli/runCli";
 
 setLogLevel(env.LOG_LEVEL);
 
 async function main() {
-  const controller = new RuntimeController();
+  const controller = createRuntimeController();
 
   const cleanup = async () => {
     await controller.shutdown();

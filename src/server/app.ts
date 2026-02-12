@@ -4,15 +4,15 @@
  */
 import express from "express";
 import cors from "cors";
-import { env } from "../config/env";
 import { errorMiddleware } from "../core/http";
-import { geminiRouter } from "../modules/gemini/router";
-import { chatRouter } from "../modules/chat/router";
-import { googleRouter } from "../modules/google/router";
-import { responsesRouter } from "../modules/responses/router";
-import { openaiRouter } from "../modules/openai/router";
+import { createGeminiRouter } from "../modules/gemini/router";
+import { createChatRouter } from "../modules/chat/router";
+import { createGoogleRouter } from "../modules/google/router";
+import { createResponsesRouter } from "../modules/responses/router";
+import { createOpenAIRouter } from "../modules/openai/router";
+import { ApiContext } from "./context";
 
-export function createServerApp() {
+export function createServerApp(context: ApiContext) {
   const app = express();
   app.use(cors());
   app.use(express.json({ limit: "10mb" }));
@@ -21,14 +21,14 @@ export function createServerApp() {
     res.json({
       status: "ok",
       service: "web-model-api-gateway",
-      active_provider: env.APP_ACTIVE_PROVIDER
+      active_provider: context.activeProviderId
     });
   });
 
   app.get("/docs", (_req, res) => {
     res.json({
       api: "Web Model API Gateway TS",
-      active_provider: env.APP_ACTIVE_PROVIDER,
+      active_provider: context.activeProviderId,
       endpoints: [
         "POST /gemini",
         "POST /gemini-chat",
@@ -42,11 +42,11 @@ export function createServerApp() {
     });
   });
 
-  app.use(openaiRouter);
-  app.use(geminiRouter);
-  app.use(chatRouter);
-  app.use(googleRouter);
-  app.use(responsesRouter);
+  app.use(createOpenAIRouter(context));
+  app.use(createGeminiRouter(context));
+  app.use(createChatRouter(context));
+  app.use(createGoogleRouter(context));
+  app.use(createResponsesRouter(context));
 
   app.use(errorMiddleware);
   return app;

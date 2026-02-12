@@ -5,9 +5,10 @@
 import { Router } from "express";
 import { asyncHandler, parseOrThrow } from "../../core/http";
 import { GoogleGenerativeRequestSchema } from "../../domain/schemas";
-import { getPrimaryProviderOrThrow } from "../../integrations/providers/registry";
+import { ApiContext } from "../../server/context";
 
-export const googleRouter = Router();
+export function createGoogleRouter(context: ApiContext): Router {
+  const googleRouter = Router();
 
 googleRouter.post(
   "/v1beta/models/:model",
@@ -21,7 +22,7 @@ googleRouter.post(
       .map((p) => p?.text ?? "")
       .join("");
 
-    const output = await getPrimaryProviderOrThrow().generateContent(prompt, model, []);
+    const output = await context.getProvider().generateContent(prompt, model, []);
 
     res.json({
       candidates: [
@@ -51,4 +52,7 @@ googleRouter.post(
     });
   })
 );
+
+  return googleRouter;
+}
 

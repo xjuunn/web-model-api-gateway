@@ -2,16 +2,22 @@
  * @file modules/sessions/sessionManager.ts
  * @description 会话管理模块：在请求间保持 Provider 聊天状态。
  */
-import { getPrimaryProviderOrThrow } from "../../integrations/providers/registry";
-import { ProviderChatSession } from "../../integrations/providers/types";
+import { ProviderChatSession, WebModelProvider } from "../../integrations/providers/types";
 
-class SessionManager {
+export type ProviderResolver = () => WebModelProvider;
+
+export class SessionManager {
   private model = "";
   private providerId = "";
   private session: ProviderChatSession | null = null;
+  private readonly resolveProvider: ProviderResolver;
+
+  constructor(resolveProvider: ProviderResolver) {
+    this.resolveProvider = resolveProvider;
+  }
 
   async getResponse(model: string, message: string, files: string[]): Promise<string> {
-    const provider = getPrimaryProviderOrThrow();
+    const provider = this.resolveProvider();
     if (!this.session || this.model !== model || this.providerId !== provider.id) {
       this.session = provider.startChat(model);
       this.model = model;
@@ -23,25 +29,14 @@ class SessionManager {
   }
 }
 
-let translateSession: SessionManager | null = null;
-let geminiChatSession: SessionManager | null = null;
-
-export function initSessionManagers(): void {
-  getPrimaryProviderOrThrow();
-  translateSession = new SessionManager();
-  geminiChatSession = new SessionManager();
+export interface SessionManagers {
+  translate: SessionManager;
+  geminiChat: SessionManager;
 }
 
-export function getTranslateSessionManager(): SessionManager {
-  if (!translateSession) {
-    throw new Error("Translate session manager not initialized.");
-  }
-  return translateSession;
-}
-
-export function getGeminiChatSessionManager(): SessionManager {
-  if (!geminiChatSession) {
-    throw new Error("Gemini chat session manager not initialized.");
-  }
-  return geminiChatSession;
+export function createSessionManagers(resolveProvider: ProviderResolver): SessionManagers {
+  return {
+    translate: new SessionManager(resolveProvider),
+    geminiChat: new SessionManager(resolveProvider)
+  };
 }

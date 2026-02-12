@@ -6,8 +6,8 @@ import { createServer, Server } from "node:http";
 import { env } from "../config/env";
 import { logger } from "../core/logger";
 import { createServerApp } from "./app";
-import { getProviderStatus, initializeProviders } from "../integrations/providers/registry";
-import { initSessionManagers } from "../modules/sessions/sessionManager";
+import { getProviderStatus, initializeProviders, ProviderStatus } from "../integrations/providers/registry";
+import { ApiContext, createApiContext } from "./context";
 
 export type RuntimeMode = "webai" | "native-api";
 
@@ -21,14 +21,51 @@ export interface RuntimeState {
   activeProviderAvailable: boolean;
 }
 
+export interface RuntimeConfig {
+  host: string;
+  port: number;
+  defaultMode: RuntimeMode | "auto";
+  activeProviderId: string;
+}
+
+export interface RuntimeDependencies {
+  config: RuntimeConfig;
+  context: ApiContext;
+  initializeProviders: () => Promise<ProviderStatus[]>;
+  getProviderStatus: (id: string) => ProviderStatus | null;
+  createApp: (context: ApiContext) => ReturnType<typeof createServerApp>;
+}
+
+export function createDefaultRuntimeDependencies(): RuntimeDependencies {
+  return {
+    config: {
+      host: env.APP_HOST,
+      port: env.APP_PORT,
+      defaultMode: env.APP_DEFAULT_MODE,
+      activeProviderId: env.APP_ACTIVE_PROVIDER
+    },
+    context: createApiContext(),
+    initializeProviders,
+    getProviderStatus,
+    createApp: createServerApp
+  };
+}
+
 export class RuntimeController {
   private webServer: Server | null = null;
-  private readonly host = env.APP_HOST;
-  private readonly port = env.APP_PORT;
+  private readonly deps: RuntimeDependencies;
+  private readonly host: string;
+  private readonly port: number;
   private webaiAvailable = false;
   private nativeApiAvailable = true;
   private currentMode: RuntimeMode | null = null;
   private activeProviderAvailable = false;
+
+  constructor(deps: RuntimeDependencies = createDefaultRuntimeDependencies()) {
+    this.deps = deps;
+    this.host = deps.config.host;
+    this.port = deps.config.port;
+  }
 
   /**
    * 返回当前运行时状态快照。
@@ -40,7 +77,7 @@ export class RuntimeController {
       currentMode: this.currentMode,
       host: this.host,
       port: this.port,
-      activeProviderId: env.APP_ACTIVE_PROVIDER,
+      activeProviderId: this.deps.config.activeProviderId,
       activeProviderAvailable: this.activeProviderAvailable
     };
   }
@@ -50,9 +87,9 @@ export class RuntimeController {
    */
   async bootstrap(): Promise<void> {
     logger.info("Checking runtime availability...");
-    await initializeProviders();
+    await this.deps.initializeProviders();
 
-    const providerStatus = getProviderStatus(env.APP_ACTIVE_PROVIDER);
+    const providerStatus = this.deps.getProviderStatus(this.deps.config.activeProviderId);
     this.activeProviderAvailable = providerStatus?.available === true;
     this.webaiAvailable = this.activeProviderAvailable;
 
@@ -65,10 +102,6 @@ export class RuntimeController {
       }
     }
 
-    if (this.webaiAvailable) {
-      initSessionManagers();
-    }
-
     logger.info(`WebAI mode: ${this.webaiAvailable ? "available" : "unavailable"}`);
     logger.info(`Native API mode: ${this.nativeApiAvailable ? "available" : "unavailable"}`);
   }
@@ -79,7 +112,7 @@ export class RuntimeController {
   private async startServer(): Promise<void> {
     if (this.webServer) return;
 
-    const app = createServerApp();
+    const app = this.deps.createApp(this.deps.context);
     this.webServer = createServer(app);
     await new Promise<void>((resolve, reject) => {
       const server = this.webServer!;
@@ -149,7 +182,7 @@ export class RuntimeController {
    * 根据默认配置启动模式。
    */
   async startDefaultMode(): Promise<RuntimeMode> {
-    const preferred = env.APP_DEFAULT_MODE;
+    const preferred = this.deps.config.defaultMode;
 
     if (preferred === "webai" && this.webaiAvailable) {
       await this.switchMode("webai");

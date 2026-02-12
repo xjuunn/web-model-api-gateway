@@ -4,13 +4,12 @@
  */
 import { Request, Response, Router } from "express";
 import { asyncHandler, parseOrThrow } from "../../core/http";
-import { env } from "../../config/env";
 import { OpenAIChatRequestSchema, GeminiRequestSchema } from "../../domain/schemas";
-import { getPrimaryProviderOrThrow } from "../../integrations/providers/registry";
-import { getTranslateSessionManager } from "../sessions/sessionManager";
 import { chunkText, contentToText, finishSse, initSse, toPromptLine, writeSseEvent } from "../openai/compat";
+import { ApiContext } from "../../server/context";
 
-export const chatRouter = Router();
+export function createChatRouter(context: ApiContext): Router {
+  const chatRouter = Router();
 
 /**
  * 生成 OpenAI chat/completions 的非流式响应体。
@@ -70,10 +69,10 @@ function writeChatStream(text: string, model: string, res: Response): void {
  */
 async function handleTranslate(req: Request, res: Response): Promise<void> {
   const body = parseOrThrow(GeminiRequestSchema, req.body);
-  const model = body.model ?? env.GEMINI_DEFAULT_MODEL;
+  const model = body.model ?? context.defaultModel;
   const files = body.files ?? [];
 
-  const text = await getTranslateSessionManager().getResponse(model, body.message, files);
+  const text = await context.sessions.translate.getResponse(model, body.message, files);
   res.json({ response: text });
 }
 
@@ -82,7 +81,7 @@ async function handleTranslate(req: Request, res: Response): Promise<void> {
  */
 async function handleChatCompletions(req: Request, res: Response): Promise<void> {
   const body = parseOrThrow(OpenAIChatRequestSchema, req.body);
-  const model = body.model ?? env.GEMINI_DEFAULT_MODEL;
+  const model = body.model ?? context.defaultModel;
 
   const prompt = body.messages
     .map((msg) => {
@@ -91,7 +90,7 @@ async function handleChatCompletions(req: Request, res: Response): Promise<void>
     })
     .join("\n\n");
 
-  const output = await getPrimaryProviderOrThrow().generateContent(prompt, model, []);
+  const output = await context.getProvider().generateContent(prompt, model, []);
   if (!(body.stream ?? false)) {
     res.json(toOpenAIResponse(output.text, model, false));
     return;
@@ -102,3 +101,6 @@ async function handleChatCompletions(req: Request, res: Response): Promise<void>
 
 chatRouter.post("/translate", asyncHandler(handleTranslate));
 chatRouter.post("/v1/chat/completions", asyncHandler(handleChatCompletions));
+
+  return chatRouter;
+}

@@ -3,6 +3,7 @@
 Type-safe TypeScript gateway for web-based Gemini access with OpenAI-compatible APIs.
 
 Chinese documentation: [docs/README.zh-CN.md](docs/README.zh-CN.md)
+Architecture guide: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## What This Project Provides
 

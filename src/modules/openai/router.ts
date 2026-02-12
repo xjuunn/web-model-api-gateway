@@ -3,9 +3,10 @@
  * @description OpenAI 元数据路由：模型列表与模型详情响应。
  */
 import { Router } from "express";
-import { env } from "../../config/env";
+import { ApiContext } from "../../server/context";
 
-export const openaiRouter = Router();
+export function createOpenAIRouter(context: ApiContext): Router {
+  const openaiRouter = Router();
 
 const SUPPORTED_MODELS = [
   "gemini-3.0-pro",
@@ -52,6 +53,9 @@ openaiRouter.get("/v1/models/:model", (req, res) => {
     object: "model",
     created: now,
     owned_by: "web-model-api-gateway",
-    root: env.GEMINI_DEFAULT_MODEL
+    root: context.defaultModel
   });
 });
+
+  return openaiRouter;
+}

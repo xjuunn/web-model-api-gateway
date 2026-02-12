@@ -4,12 +4,12 @@
  */
 import { Request, Response, Router } from "express";
 import { asyncHandler, parseOrThrow } from "../../core/http";
-import { env } from "../../config/env";
 import { ResponsesRequestSchema } from "../../domain/schemas";
-import { getPrimaryProviderOrThrow } from "../../integrations/providers/registry";
 import { chunkText, contentToText, finishSse, initSse, toPromptLine, writeSseEvent } from "../openai/compat";
+import { ApiContext } from "../../server/context";
 
-export const responsesRouter = Router();
+export function createResponsesRouter(context: ApiContext): Router {
+  const responsesRouter = Router();
 
 /**
  * 将 responses.input 归一化为纯文本。
@@ -123,7 +123,7 @@ function writeResponsesStream(
  */
 async function handleResponses(req: Request, res: Response): Promise<void> {
   const body = parseOrThrow(ResponsesRequestSchema, req.body);
-  const model = body.model ?? env.GEMINI_DEFAULT_MODEL;
+  const model = body.model ?? context.defaultModel;
 
   const fromMessages = body.messages ? collectMessagesText(body.messages) : "";
   const fromInput = collectInputText(body.input);
@@ -134,7 +134,7 @@ async function handleResponses(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const output = await getPrimaryProviderOrThrow().generateContent(prompt, model, []);
+  const output = await context.getProvider().generateContent(prompt, model, []);
   const now = Math.floor(Date.now() / 1000);
   const responseId = `resp-${now}`;
   const messageId = `msg-${now}`;
@@ -163,3 +163,6 @@ async function handleResponses(req: Request, res: Response): Promise<void> {
 }
 
 responsesRouter.post("/v1/responses", asyncHandler(handleResponses));
+
+  return responsesRouter;
+}
