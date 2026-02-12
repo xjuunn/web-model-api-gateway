@@ -6,48 +6,6 @@ import pc from "picocolors";
 import { RuntimeMode, RuntimeState } from "../server/runtime";
 import { CliAction, CliChoice } from "./types";
 
-const text = {
-  banner: { en: "Web Model API Gateway CLI", zh: "命令行" },
-  bootstrapping: { en: "Bootstrapping runtime...", zh: "正在初始化运行时..." },
-  selectAction: { en: "Select an action", zh: "请选择操作" },
-  explanation: { en: "Explanation", zh: "说明" },
-  baseApi: { en: "Base API", zh: "基础地址" },
-  currentMode: { en: "Current mode", zh: "当前模式" },
-  provider: { en: "Active provider", zh: "当前 Provider" },
-  mode: { en: "Mode", zh: "模式" },
-  available: { en: "available", zh: "可用" },
-  unavailable: { en: "unavailable", zh: "不可用" },
-  webaiEndpoints: { en: "WebAI endpoints", zh: "WebAI 端点" },
-  nativeEndpoints: { en: "Native API endpoints", zh: "原生 API 端点" },
-  stopped: { en: "Runtime stopped.", zh: "运行时已停止。" }
-} as const;
-
-const actionText: Record<
-  Exclude<CliAction, "exit">,
-  { title: { en: string; zh: string }; description: { en: string; zh: string }; explanation: { en: string; zh: string } }
-> = {
-  guide: {
-    title: { en: "Show API guide", zh: "显示 API 指南" },
-    description: { en: "List endpoints and active base URL.", zh: "查看端点和当前地址" },
-    explanation: { en: "Show API endpoints and current base URL.", zh: "显示 API 端点和当前地址" }
-  },
-  "switch-webai": {
-    title: { en: "Switch to WebAI", zh: "切换到 WebAI" },
-    description: { en: "Use web-model gateway endpoints.", zh: "使用网页模型代理端点" },
-    explanation: { en: "Switch runtime to WebAI mode.", zh: "切换到 WebAI 模式" }
-  },
-  "switch-native-api": {
-    title: { en: "Switch to Native API", zh: "切换到原生 API" },
-    description: { en: "Use OpenAI-compatible native API endpoints.", zh: "使用 OpenAI 兼容原生接口" },
-    explanation: { en: "Switch runtime to Native API mode.", zh: "切换到原生 API 模式" }
-  },
-  status: {
-    title: { en: "Show runtime status", zh: "显示运行状态" },
-    description: { en: "Check mode, provider and availability.", zh: "查看模式和可用性" },
-    explanation: { en: "Display runtime and provider status.", zh: "显示运行时和 Provider 状态" }
-  }
-};
-
 /**
  * 生成英文主文案并附加灰色中文括注。
  */
@@ -59,8 +17,8 @@ export function bi(en: string, zh: string): string {
  * 渲染 CLI 启动横幅。
  */
 export function renderBanner(): void {
-  console.log(pc.bgCyan(pc.black(` ${bi(text.banner.en, text.banner.zh)} `)));
-  console.log(pc.gray(bi(text.bootstrapping.en, text.bootstrapping.zh)));
+  console.log(pc.bgCyan(pc.black(` ${bi("Web Model API Gateway CLI", "命令行")} `)));
+  console.log(pc.gray(bi("Bootstrapping runtime...", "正在初始化运行时...")));
 }
 
 /**
@@ -69,12 +27,12 @@ export function renderBanner(): void {
 export function renderGuide(mode: RuntimeMode, state: RuntimeState): void {
   const base = `http://${state.host}:${state.port}`;
   console.log("");
-  console.log(pc.bold(pc.cyan(`${bi(text.baseApi.en, text.baseApi.zh)}: ${base}`)));
-  console.log(pc.bold(`${bi(text.currentMode.en, text.currentMode.zh)}: ${mode}`));
-  console.log(pc.bold(`${bi(text.provider.en, text.provider.zh)}: ${state.activeProviderId}`));
+  console.log(pc.bold(pc.cyan(`${bi("Base API", "基础地址")}: ${base}`)));
+  console.log(pc.bold(`${bi("Current mode", "当前模式")}: ${mode}`));
+  console.log(pc.bold(`${bi("Active provider", "当前 Provider")}: ${state.activeProviderId}`));
 
   if (mode === "webai") {
-    console.log(pc.green(`${bi(text.webaiEndpoints.en, text.webaiEndpoints.zh)}:`));
+    console.log(pc.green(`${bi("WebAI endpoints", "WebAI 端点")}:`));
     console.log(`- ${base}/docs`);
     console.log(`- ${base}/gemini`);
     console.log(`- ${base}/gemini-chat`);
@@ -82,7 +40,7 @@ export function renderGuide(mode: RuntimeMode, state: RuntimeState): void {
     console.log(`- ${base}/v1/chat/completions`);
     console.log(`- ${base}/v1/responses`);
   } else {
-    console.log(pc.green(`${bi(text.nativeEndpoints.en, text.nativeEndpoints.zh)}:`));
+    console.log(pc.green(`${bi("Native API endpoints", "原生 API 端点")}:`));
     console.log(`- ${base}/docs`);
     console.log(`- ${base}/v1/models`);
     console.log(`- ${base}/v1/models/{model}`);
@@ -97,8 +55,22 @@ export function renderGuide(mode: RuntimeMode, state: RuntimeState): void {
  * 渲染动作解释文案。
  */
 export function renderActionExplanation(action: Exclude<CliAction, "exit">): void {
-  const info = actionText[action];
-  console.log(pc.gray(`${bi(text.explanation.en, text.explanation.zh)}: ${bi(info.explanation.en, info.explanation.zh)}`));
+  let explanation: string;
+  switch (action) {
+    case "guide":
+      explanation = bi("Show API endpoints and current base URL.", "显示 API 端点和当前地址");
+      break;
+    case "switch-webai":
+      explanation = bi("Switch runtime to WebAI mode.", "切换到 WebAI 模式");
+      break;
+    case "switch-native-api":
+      explanation = bi("Switch runtime to Native API mode.", "切换到原生 API 模式");
+      break;
+    case "status":
+      explanation = bi("Display runtime and provider status.", "显示运行时和 Provider 状态");
+      break;
+  }
+  console.log(pc.gray(`${bi("Explanation", "说明")}: ${explanation}`));
 }
 
 /**
@@ -107,7 +79,7 @@ export function renderActionExplanation(action: Exclude<CliAction, "exit">): voi
 export function renderStatus(state: RuntimeState): void {
   console.log(
     pc.yellow(
-      `${bi(text.mode.en, text.mode.zh)}=${state.currentMode ?? "none"}, webai=${state.webaiAvailable}, nativeApi=${state.nativeApiAvailable}, ${bi(text.provider.en, text.provider.zh)}=${state.activeProviderId} (${state.activeProviderAvailable ? bi(text.available.en, text.available.zh) : bi(text.unavailable.en, text.unavailable.zh)})`
+      `${bi("Mode", "模式")}=${state.currentMode ?? "none"}, webai=${state.webaiAvailable}, nativeApi=${state.nativeApiAvailable}, ${bi("Active provider", "当前 Provider")}=${state.activeProviderId} (${state.activeProviderAvailable ? bi("available", "可用") : bi("unavailable", "不可用")})`
     )
   );
 }
@@ -116,30 +88,30 @@ export function renderStatus(state: RuntimeState): void {
  * 根据当前状态构建菜单项。
  */
 export function buildChoices(state: RuntimeState): CliChoice[] {
-  const unavailable = pc.gray(bi(text.unavailable.en, text.unavailable.zh));
+  const unavailable = pc.gray(bi("unavailable", "不可用"));
   return [
     {
-      title: bi(actionText.guide.title.en, actionText.guide.title.zh),
-      description: bi(actionText.guide.description.en, actionText.guide.description.zh),
+      title: bi("Show API guide", "显示 API 指南"),
+      description: bi("List endpoints and active base URL.", "查看端点和当前地址"),
       value: "guide"
     },
     {
       title: state.webaiAvailable
-        ? bi(actionText["switch-webai"].title.en, actionText["switch-webai"].title.zh)
-        : `${bi(actionText["switch-webai"].title.en, actionText["switch-webai"].title.zh)} ${unavailable}`,
-      description: bi(actionText["switch-webai"].description.en, actionText["switch-webai"].description.zh),
+        ? bi("Switch to WebAI", "切换到 WebAI")
+        : `${bi("Switch to WebAI", "切换到 WebAI")} ${unavailable}`,
+      description: bi("Use web-model gateway endpoints.", "使用网页模型代理端点"),
       value: "switch-webai"
     },
     {
       title: state.nativeApiAvailable
-        ? bi(actionText["switch-native-api"].title.en, actionText["switch-native-api"].title.zh)
-        : `${bi(actionText["switch-native-api"].title.en, actionText["switch-native-api"].title.zh)} ${unavailable}`,
-      description: bi(actionText["switch-native-api"].description.en, actionText["switch-native-api"].description.zh),
+        ? bi("Switch to Native API", "切换到原生 API")
+        : `${bi("Switch to Native API", "切换到原生 API")} ${unavailable}`,
+      description: bi("Use OpenAI-compatible native API endpoints.", "使用 OpenAI 兼容原生接口"),
       value: "switch-native-api"
     },
     {
-      title: bi(actionText.status.title.en, actionText.status.title.zh),
-      description: bi(actionText.status.description.en, actionText.status.description.zh),
+      title: bi("Show runtime status", "显示运行状态"),
+      description: bi("Check mode, provider and availability.", "查看模式和可用性"),
       value: "status"
     },
     {
@@ -154,12 +126,12 @@ export function buildChoices(state: RuntimeState): CliChoice[] {
  * 输出运行结束文案。
  */
 export function renderStopped(): void {
-  console.log(pc.green(bi(text.stopped.en, text.stopped.zh)));
+  console.log(pc.green(bi("Runtime stopped.", "运行时已停止。")));
 }
 
 /**
  * 返回选择动作的提示语。
  */
 export function getSelectPrompt(): string {
-  return bi(text.selectAction.en, text.selectAction.zh);
+  return bi("Select an action", "请选择操作");
 }
